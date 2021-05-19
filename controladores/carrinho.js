@@ -1,4 +1,5 @@
 const fs = require('fs/promises');
+const { addBusinessDays } = require('date-fns');
 
 async function obterCarrinho(req, res){
     const carrinho = JSON.parse(await fs.readFile('./carrinho.json'));
@@ -10,12 +11,17 @@ async function adicionarProduto(req, res){
     const idProduto = req.body.id;
     const qntProduto = req.body.quantidade;
 
-    const estoque = JSON.parse(await fs.readFile('./data.json'));
+    if (!idProduto || !qntProduto) {
+        return res.status(400)
+    }
 
-    const produtoEncontrado = estoque.produtos.find(produto => produto.id === idProduto);
+    const dados = JSON.parse(await fs.readFile('./data.json'));
 
-    //validação se o produto existe
-    //validação de que a quantidade do request é menor ou igual ao estoque
+    const produtoEncontrado = dados.produtos.find(produto => produto.id === idProduto);
+
+    if (!produtoEncontrado) {
+        return res.status(400).json({ mensagem: "Produto não encontrado "})
+    }
 
     const produtoCarrinho = {
         id: produtoEncontrado.id,
@@ -25,24 +31,49 @@ async function adicionarProduto(req, res){
         categoria: produtoEncontrado.categoria,
     }
 
-    if (!produtoEncontrado){
-        res.json({mensagem: ""});
-
-        return;
-    };
+    if (quantidade > produtoEncontrado.estoque) {
+        return res.status(400).json({ mensagem: "Produto fora de estoque" })
+    }
 
     const carrinho = JSON.parse(await fs.readFile('./carrinho.json'));
 
-    //validar se o produto já existe no carrinho
-    carrinho.produtos[0].quantidade += 1; //se já existir, acrescentar apenas a quantidade
+    const produtoJaExiste = carrinho.produtos.findIndex(produto => produto.id === id);
 
-    carrinho.produtos.push(produtoCarrinho);
+    if (produtoJaExiste === -1) {
+        carrinho.produtos[produtoJaExiste].quantidade += produtoCarrinho.quantidade;
+    } else {
+        carrinho.produtos.push(produtoCarrinho);
+    }
 
-    fs.writeFilte('./dados/carrinho.json', JSON.stringify(carrinho, null, 2));
+    fs.writeFile('./dados/carrinho.json', JSON.stringify(carrinho, null, 2));
 
     res.status(201).json(carrinho);
 }
 
+function calcularCarrinho(carrinho) {
+    const precoFrete = 5000;
+    const freteGratis = 20000;
+
+    let subTotal = 0;
+
+    carrinho.produtos.forEach(produto => {
+        subtotal += produto.preco * produto.quantidade
+    });
+
+    let valorDoFrete = 0;
+    if (subTotal > freteGratis) {
+        valorDoFrete = 0;
+    } else {
+        valorDoFrete = precoFrete;
+    };
+
+    let dataDeEntrega = addBusinessDays(Date.now(), 15);
+    const totalAPagar = subTotal + valorDoFrete;
+
+    return calcularCarrinho;
+}
+
 module.exports = {
     obterCarrinho,
+    adicionarProduto
 };

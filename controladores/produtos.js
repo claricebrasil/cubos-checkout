@@ -2,12 +2,14 @@ const fs = require("fs");
 const listaDeProdutos = require('../data.json');
 
 const conteudo = fs.readFileSync("./data.json").toString();
-const dados = JSON.parse(conteudo);
+let dados = JSON.parse(conteudo);
 
 function consultarProdutosEstoque(req, res) {
     let categoria = req.query.categoria;
     let precoInicial = req.query.precoInicial;
     let precoFinal = req.query.precoFinal;
+
+    dados = dados.produtos.filter(produto => produto.estoque > 0);
 
     if(categoria) {
         const produtosPorCategoria = dados.produtos.filter((produto) => {
